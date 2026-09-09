@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.12 — Bounded Split Search
+
+- Added optional `max_split_candidates` for deterministic, bounded direct split
+  evaluation in regressors and classifiers, including native JSON persistence.
+- Preserved exhaustive default searches and Rust 1.85 compatibility.
+
 ## 0.3.11 — Native Feature Contributions
 
 - Added exact background-free, path-dependent TreeSHAP for supported

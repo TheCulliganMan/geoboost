@@ -13039,8 +13039,9 @@ fn coords_from_array(coords: PyReadonlyArray2<'_, f64>) -> PyResult<Vec<[f64; 2]
         ));
     }
     let values = coords.as_slice()?;
+    // Shape validation guarantees complete rows; chunks supports Rust 1.85.
     Ok(values
-        .chunks_exact(2)
+        .chunks(shape[1])
         .map(|chunk| [chunk[0], chunk[1]])
         .collect())
 }
@@ -13092,8 +13093,9 @@ fn lanes_from_array(lanes: PyReadonlyArray2<'_, f64>) -> PyResult<Vec<[f64; 4]>>
         ));
     }
     let values = lanes.as_slice()?;
+    // Shape validation guarantees complete rows; chunks supports Rust 1.85.
     Ok(values
-        .chunks_exact(4)
+        .chunks(shape[1])
         .map(|chunk| [chunk[0], chunk[1], chunk[2], chunk[3]])
         .collect())
 }
