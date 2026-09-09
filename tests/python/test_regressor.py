@@ -7,6 +7,57 @@ import pytest
 from cartoboost import CartoBoostRegressor
 
 
+@pytest.mark.parametrize("model_kind", ["regressor", "classifier"])
+@pytest.mark.parametrize("split_policy", ["axis_only", "structured"])
+def test_split_candidate_budget_roundtrip_and_determinism(
+    tmp_path: Path, model_kind: str, split_policy: str
+):
+    from cartoboost import CartoBoostClassifier, FeatureSchema
+
+    model_type = CartoBoostRegressor if model_kind == "regressor" else CartoBoostClassifier
+    options = {"loss": "huber"} if model_kind == "regressor" else {}
+    X = [[float(i), float((i * 7) % 31), float(i % 7)] for i in range(32)]
+    y = [float(i % 5) if model_kind == "regressor" else i % 2 for i in range(32)]
+    schema = FeatureSchema(dense=[("x", "spatial"), ("y", "spatial"), ("day", {"periodic": 7})])
+    params = dict(
+        n_estimators=2,
+        max_depth=2,
+        min_samples_leaf=2,
+        fuzzy=True,
+        fuzzy_bandwidth=0.2,
+        split_policy=split_policy,
+    )
+    models = [
+        model_type(**params, **options, max_split_candidates=budget, n_threads=threads).fit(
+            X, y, feature_schema=schema
+        )
+        for budget, threads in [(None, 1), (10000, 1), (4, 1), (4, 2)]
+    ]
+    assert list(models[0].predict(X)) == pytest.approx(list(models[1].predict(X)))
+    assert list(models[2].predict(X)) == pytest.approx(list(models[3].predict(X)))
+    assert "max_split_candidates" not in models[0].training_config_
+    assert models[2].training_config_["max_split_candidates"] == 4
+    if model_kind == "classifier":
+        import numpy as np
+
+        np.testing.assert_array_equal(models[0].predict_proba(X), models[1].predict_proba(X))
+        np.testing.assert_array_equal(models[2].predict_proba(X), models[3].predict_proba(X))
+    path = tmp_path / "budget.json"
+    models[2].save(path)
+    restored = model_type.load(path)
+    assert restored.get_params()["max_split_candidates"] == 4
+    assert list(restored.predict(X)) == pytest.approx(list(models[2].predict(X)))
+
+
+@pytest.mark.parametrize("budget", [0, -1])
+def test_split_candidate_budget_rejects_nonpositive(budget: int):
+    from cartoboost import CartoBoostClassifier
+
+    for model_type in (CartoBoostRegressor, CartoBoostClassifier):
+        with pytest.raises((ValueError, OverflowError)):
+            model_type(max_split_candidates=budget).fit([[0.0], [1.0]], [0, 1])
+
+
 def test_get_params_and_set_params_reset_model():
     regressor = CartoBoostRegressor(n_estimators=3)
     assert regressor.get_params()["n_estimators"] == 3

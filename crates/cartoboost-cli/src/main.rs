@@ -473,6 +473,7 @@ impl Config {
     fn booster_config(&self) -> CliResult<BoosterConfig> {
         let defaults = BoosterConfig::default();
         Ok(BoosterConfig {
+            max_split_candidates: None,
             n_estimators: self.n_estimators.unwrap_or(defaults.n_estimators),
             learning_rate: self.learning_rate.unwrap_or(defaults.learning_rate),
             max_depth: self.max_depth.unwrap_or(defaults.max_depth),

@@ -40,6 +40,21 @@ ordinary bias/variance tuning after the validation split is fixed.
 | `random_state` | `None` | Reserved for deterministic APIs; current training paths are deterministic. |
 | `n_threads` | `None` | Number of native CPU threads; use it for reproducible scale measurements. |
 
+## Bounding expensive split searches
+
+`CartoBoostRegressor` and `CartoBoostClassifier` accept
+`max_split_candidates=None` (default) or a positive integer such as `32`.
+The limit applies per node and dense feature, spatial projection, Gaussian
+center, or periodic feature to candidates that require direct row-by-row
+loss evaluation. Efficient prefix-sum searches and sparse-set searches retain
+their existing candidate sets.
+
+Candidates are selected deterministically across the ordered candidate range.
+This can reduce training cost with robust losses or fuzzy routing without
+changing the loss or routing formulas. It can change the selected trees:
+compare held-out accuracy and runtime before choosing a budget. `None`
+preserves exhaustive direct searches. Native JSON save/load retains the budget.
+
 ## Loss
 
 Choose the loss from the estimand. Mean regression is appropriate for many
